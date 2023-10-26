@@ -1,0 +1,88 @@
+{% extends 'base.html' %} {% block chat_name %}Chat - Websocket {% endblock %}
+{% block content %}
+<h1>Bem vindo(a) ao chat com Websocket</h1>
+<button id="btn-connect">Iniciar chat</button>
+<button id="btn-disconnect" style="display: none">Sair do chat</button>
+<button id="btn-send" style="display: none">Enviar</button>
+<input type="text" id="message" style="display: none" />
+<div id="messages"></div>
+
+<script>
+  const messages = document.getElementById("messages");
+  class WebSocketClient {
+    constructor() {
+      this.connected = false;
+    }
+
+    connect() {
+      console.log("Conectando...");
+      this.chatSocket = new WebSocket(
+        "ws://" + window.location.host + "/chat/ws"
+      );
+
+      this.chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        const message = data["message"];
+        messages.innerHTML += `<p>${message}</p>`;
+      };
+      this.connected = true;
+
+      this.chatSocket.onclose = function (e) {
+        console.error("Chat socket closed unexpectedly");
+        this.connected = false;
+      };
+
+      console.log("Conectado...");
+    }
+
+    close() {
+      this.chatSocket.close();
+      this.connected = false;
+    }
+
+    sendMessage(message) {
+      this.chatSocket.send(
+        JSON.stringify({
+          message: message,
+        })
+      );
+    }
+  }
+
+  const client = new WebSocketClient();
+
+  const btnConnect = document.getElementById("btn-connect");
+  const btnDisconnect = document.getElementById("btn-disconnect");
+  const btnSend = document.getElementById("btn-send");
+  const message = document.getElementById("message");
+
+  function connect() {
+    client.connect();
+    btnConnect.style.display = "none";
+    btnDisconnect.style.display = "inline-block";
+    btnSend.style.display = "inline-block";
+    message.style.display = "inline-block";
+  }
+
+  function disconnect() {
+    client.close();
+    btnConnect.style.display = "inline-block";
+    btnDisconnect.style.display = "none";
+    btnSend.style.display = "none";
+    message.style.display = "none";
+  }
+
+  btnConnect.addEventListener("click", connect);
+  btnDisconnect.addEventListener("click", disconnect);
+
+  function sendMessage() {
+    console.log(message.value);
+    if (client.connected && message.value != "") {
+      client.sendMessage(message.value);
+    }
+  }
+
+  btnSend.addEventListener("click", sendMessage);
+</script>
+
+{% endblock %}
